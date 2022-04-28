@@ -604,6 +604,7 @@ angular.module('cerebro').controller('ConnectController', [
             $location.path('/overview');
             break;
           case 401:
+          case 403:
             $scope.unauthorized = true;
             break;
           default:
@@ -625,6 +626,9 @@ angular.module('cerebro').controller('ConnectController', [
         switch (response.data.status) {
           case 401:
             feedback('Invalid username or password');
+            break;
+          case 403:
+            feedback('User does not have permission');
             break;
           case 200:
             ConnectDataService.connectWithCredentials(host, username, pwd);
@@ -3089,6 +3093,7 @@ angular.module('cerebro').factory('DataService', ['$rootScope', '$timeout',
             $window.location.href = './login';
             break;
           case 401: // unauthorized in ES instance
+          case 403: // user does not have permissions
             $location.path('/connect').search({host: host, unauthorized: true});
             break;
           default:

@@ -106,6 +106,7 @@ angular.module('cerebro').factory('DataService', ['$rootScope', '$timeout',
             $window.location.href = './login';
             break;
           case 401: // unauthorized in ES instance
+          case 403: // user does not have permissions
             $location.path('/connect').search({host: host, unauthorized: true});
             break;
           default:
