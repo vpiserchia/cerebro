@@ -2075,45 +2075,48 @@ angular.module('cerebro').factory('TemplatesDataService', ['DataService',
   },
 ]);
 
-function IndexTemplateFilter(name, pattern) {
-  this.name = name;
-  this.pattern = pattern;
+// eslint-disable-next-line no-unused-vars
+class IndexTemplateFilter {
+  constructor(name, pattern) {
+    this.name = name;
+    this.pattern = pattern;
 
-  this.clone = function() {
-    // eslint-disable-next-line no-unused-vars
-    return new IndexTemplateFilter(name, pattern);
-  };
-
-  this.getSorting = function() {
-    return function(a, b) {
-      return a.name.localeCompare(b.name);
+    this.clone = function() {
+      // eslint-disable-next-line no-unused-vars
+      return new IndexTemplateFilter(name, pattern);
     };
-  };
 
-  this.equals = function(other) {
-    return (other !== null &&
-    this.name === other.name &&
-    this.pattern === other.pattern);
-  };
+    this.getSorting = function() {
+      return function(a, b) {
+        return a.name.localeCompare(b.name);
+      };
+    };
 
-  this.isBlank = function() {
-    return !this.name && !this.pattern;
-  };
+    this.equals = function(other) {
+      return (other !== null &&
+        this.name === other.name &&
+        this.pattern === other.pattern);
+    };
 
-  this.matches = function(template) {
-    if (this.isBlank()) {
-      return true;
-    } else {
-      var matches = true;
-      if (this.name) {
-        matches = template.name.indexOf(this.name) != -1;
+    this.isBlank = function() {
+      return !this.name && !this.pattern;
+    };
+
+    this.matches = function(template) {
+      if (this.isBlank()) {
+        return true;
+      } else {
+        var matches = true;
+        if (this.name) {
+          matches = template.name.indexOf(this.name) != -1;
+        }
+        if (matches && this.pattern) {
+          matches = template.template.template.indexOf(this.pattern) != -1;
+        }
+        return matches;
       }
-      if (matches && this.pattern) {
-        matches = template.template.template.indexOf(this.pattern) != -1;
-      }
-      return matches;
-    }
-  };
+    };
+  }
 }
 
 // eslint-disable-next-line no-unused-vars
@@ -2159,48 +2162,51 @@ function AceEditor(target) {
   };
 }
 
-function AliasFilter(index, alias) {
-  this.index = index;
-  this.alias = alias;
+// eslint-disable-next-line no-unused-vars
+class AliasFilter {
+  constructor(index, alias) {
+    this.index = index;
+    this.alias = alias;
 
-  this.clone = function() {
-    // eslint-disable-next-line no-unused-vars
-    return new AliasFilter(this.index, this.alias);
-  };
-
-  this.getSorting = function() {
-    return function(a, b) {
-      if (a.alias === b.alias) {
-        return a.index.localeCompare(b.index);
-      }
-      return a.alias.localeCompare(b.alias);
+    this.clone = function() {
+      // eslint-disable-next-line no-unused-vars
+      return new AliasFilter(this.index, this.alias);
     };
-  };
 
-  this.equals = function(other) {
-    return (other !== null &&
-    this.index == other.index &&
-    this.alias == other.alias);
-  };
+    this.getSorting = function() {
+      return function(a, b) {
+        if (a.alias === b.alias) {
+          return a.index.localeCompare(b.index);
+        }
+        return a.alias.localeCompare(b.alias);
+      };
+    };
 
-  this.isBlank = function() {
-    return !this.index && !this.alias;
-  };
+    this.equals = function(other) {
+      return (other !== null &&
+        this.index == other.index &&
+        this.alias == other.alias);
+    };
 
-  this.matches = function(alias) {
-    if (this.isBlank()) {
-      return true;
-    } else {
-      var matches = true;
-      if (this.index) {
-        matches = alias.index.indexOf(this.index) != -1;
+    this.isBlank = function() {
+      return !this.index && !this.alias;
+    };
+
+    this.matches = function(alias) {
+      if (this.isBlank()) {
+        return true;
+      } else {
+        var matches = true;
+        if (this.index) {
+          matches = alias.index.indexOf(this.index) != -1;
+        }
+        if (matches && this.alias) {
+          matches = alias.alias.indexOf(this.alias) != -1;
+        }
+        return matches;
       }
-      if (matches && this.alias) {
-        matches = alias.alias.indexOf(this.alias) != -1;
-      }
-      return matches;
-    }
-  };
+    };
+  }
 }
 
 // eslint-disable-next-line no-unused-vars
@@ -2265,103 +2271,106 @@ function GroupedSettings(settings) {
   this.groups = Object.values(groups);
 }
 
-function IndexFilter(name, closed, special, healthy, asc, timestamp) {
-  this.name = name;
-  this.closed = closed;
-  this.special = special;
-  this.healthy = healthy;
-  this.sort = 'name';
-  this.asc = asc;
-  this.timestamp = timestamp;
+// eslint-disable-next-line no-unused-vars
+class IndexFilter {
+  constructor(name, closed, special, healthy, asc, timestamp) {
+    this.name = name;
+    this.closed = closed;
+    this.special = special;
+    this.healthy = healthy;
+    this.sort = 'name';
+    this.asc = asc;
+    this.timestamp = timestamp;
 
-  this.getSorting = function() {
-    var asc = this.asc;
-    switch (this.sort) {
-      case 'name':
-        return function(a, b) {
-          if (asc) {
-            return a.name.localeCompare(b.name);
-          } else {
-            return b.name.localeCompare(a.name);
-          }
-        };
-      default:
-        return undefined;
-    }
-  };
+    this.getSorting = function() {
+      var asc = this.asc;
+      switch (this.sort) {
+        case 'name':
+          return function(a, b) {
+            if (asc) {
+              return a.name.localeCompare(b.name);
+            } else {
+              return b.name.localeCompare(a.name);
+            }
+          };
+        default:
+          return undefined;
+      }
+    };
 
-  this.clone = function() {
-    // eslint-disable-next-line no-unused-vars
-    return new IndexFilter(
-        this.name,
-        this.closed,
-        this.special,
-        this.healthy,
-        this.asc,
-        this.timestamp
-    );
-  };
+    this.clone = function() {
+      // eslint-disable-next-line no-unused-vars
+      return new IndexFilter(
+          this.name,
+          this.closed,
+          this.special,
+          this.healthy,
+          this.asc,
+          this.timestamp
+      );
+    };
 
-  this.equals = function(other) {
-    return (
-      other !== null &&
-      this.name === other.name &&
-      this.closed === other.closed &&
-      this.special === other.special &&
-      this.healthy === other.healthy &&
-      this.asc === other.asc &&
-      this.timestamp === other.timestamp
-    );
-  };
+    this.equals = function(other) {
+      return (
+        other !== null &&
+        this.name === other.name &&
+        this.closed === other.closed &&
+        this.special === other.special &&
+        this.healthy === other.healthy &&
+        this.asc === other.asc &&
+        this.timestamp === other.timestamp
+      );
+    };
 
-  this.isBlank = function() {
-    return (
-      !this.name &&
-      this.closed &&
-      this.special &&
-      this.healthy &&
-      this.asc
-    );
-  };
+    this.isBlank = function() {
+      return (
+        !this.name &&
+        this.closed &&
+        this.special &&
+        this.healthy &&
+        this.asc
+      );
+    };
 
-  this.matches = function(index) {
-    var matches = true;
-    if (!this.special && index.special) {
-      matches = false;
-    }
-    if (!this.closed && index.closed) {
-      matches = false;
-    }
-    // Hide healthy == show unhealthy only
-    if (!this.healthy && !index.unhealthy) {
-      matches = false;
-    }
-    if (matches && this.name) {
-      try {
-        var regExp = new RegExp(this.name.trim(), 'i');
-        matches = regExp.test(index.name);
-        if (!matches && index.aliases) {
-          for (var idx = 0; idx < index.aliases.length; idx++) {
-            if ((matches = regExp.test(index.aliases[idx]))) {
-              break;
+    this.matches = function(index) {
+      var matches = true;
+      if (!this.special && index.special) {
+        matches = false;
+      }
+      if (!this.closed && index.closed) {
+        matches = false;
+      }
+      // Hide healthy == show unhealthy only
+      if (!this.healthy && !index.unhealthy) {
+        matches = false;
+      }
+      if (matches && this.name) {
+        try {
+          var regExp = new RegExp(this.name.trim(), 'i');
+          matches = regExp.test(index.name);
+          if (!matches && index.aliases) {
+            for (var idx = 0; idx < index.aliases.length; idx++) {
+              if ((matches = regExp.test(index.aliases[idx]))) {
+                break;
+              }
             }
           }
-        }
-      } catch (err) { // if not valid regexp, still try normal matching
-        matches = index.name.indexOf(this.name.toLowerCase()) != -1;
-        if (!matches) {
-          for (var _idx = 0; _idx < index.aliases.length; _idx++) {
-            var alias = index.aliases[_idx].toLowerCase();
-            matches = true;
-            if ((matches = (alias.indexOf(this.name.toLowerCase()) != -1))) {
-              break;
+        } catch (err) { // if not valid regexp, still try normal matching
+          matches = index.name.indexOf(this.name.toLowerCase()) != -1;
+          if (!matches) {
+            for (var _idx = 0; _idx < index.aliases.length; _idx++) {
+              var alias = index.aliases[_idx].toLowerCase();
+              matches = true;
+              if ((matches = (alias.indexOf(this.name.toLowerCase()) != -1))) {
+                break;
+              }
             }
           }
         }
       }
-    }
-    return matches;
-  };
+      return matches;
+    };
+  }
 }
 
 // eslint-disable-next-line no-unused-vars

@@ -1,4 +1,4 @@
-module.exports = function(grunt) {
+module.exports = function (grunt) {
 
   var singleRunTests = grunt.option('singleRunTests') !== false;
   grunt.initConfig({
@@ -75,10 +75,13 @@ module.exports = function(grunt) {
           'src/app/shared/*.js',
           'src/app/shared/*/*.js'
         ]
+      },
+      options: {
+        esnext: true
       }
     },
     karma: {
-      unit: {configFile: 'tests/karma.config.js', singleRun: singleRunTests }
+      unit: { configFile: 'tests/karma.config.js', singleRun: singleRunTests }
     },
     eslint: {
       options: {
