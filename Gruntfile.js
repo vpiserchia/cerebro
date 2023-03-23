@@ -106,6 +106,6 @@ module.exports = function (grunt) {
   grunt.loadNpmTasks('grunt-eslint');
   grunt.registerTask('dev', ['watch']);
   grunt.registerTask('build',
-    ['clean', 'jshint', 'eslint', 'concat', 'copy', 'karma']);
+    ['clean', 'jshint', 'eslint', 'concat', 'copy']);
   grunt.registerTask('test', ['karma'])
 };
