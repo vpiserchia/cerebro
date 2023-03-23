@@ -5,6 +5,7 @@
 !.gitignore
 !.eslintrc.json
 !.dockerignore
+!.github/
 
 # Ignore Play! working directory #
 db
