@@ -24,13 +24,6 @@ RUN sed -i '/<appender-ref ref="FILE"\/>/d' /opt/cerebro/conf/logback.xml
 # Package docker image
 FROM eclipse-temurin:8-jre-jammy
 
-ARG CEREBRO_VERSION
-
-LABEL org.opencontainers.image.authors="lmenezes,coveo"
-LABEL org.opencontainers.image.source="https://github.com/coveooss/cerebro"
-LABEL org.opencontainers.image.version=${CEREBRO_VERSION}
-LABEL org.opencontainers.image.description="Cerebro is an Elasticsearch web admin tool"
-
 COPY --from=builder-scala /opt/cerebro /opt/cerebro
 
 RUN mkdir -p /opt/cerebro/logs \
