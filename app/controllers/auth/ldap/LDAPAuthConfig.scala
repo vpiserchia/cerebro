@@ -5,7 +5,7 @@ import play.api.Configuration
 
 class LDAPAuthConfig(config: Configuration) extends AuthConfig {
 
-  implicit val conf = config
+  implicit val conf: Configuration = config
 
   final val userTemplate = getSetting("user-template")
   final val method = getSetting("method")

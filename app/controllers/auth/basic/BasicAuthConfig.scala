@@ -5,7 +5,7 @@ import play.api.Configuration
 
 class BasicAuthConfig(config: Configuration) extends AuthConfig {
 
-  implicit val conf = config
+  implicit val conf: Configuration = config
 
   final val username = getSetting("username")
   final val password = getSetting("password")
