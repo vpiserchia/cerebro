@@ -1,0 +1,38 @@
+[Unit]
+Description=Cerebro - Elasticsearch web admin tool
+Documentation=https://github.com/lmenezes/cerebro
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+WorkingDirectory=/usr/share/cerebro
+
+User=cerebro
+Group=cerebro
+
+# envs
+EnvironmentFile=-/etc/default/cerebro
+EnvironmentFile=-/etc/sysconfig/cerebro
+
+ExecStart=/usr/share/cerebro/bin/cerebro \
+	-Dconfig.file=/etc/cerebro/application.conf \
+	-Dlogger.file=/etc/cerebro/logback.xml \
+	-Dpidfile.path=/dev/null
+
+StandardOutput=null
+StandardError=null
+
+# Disable timeout logic and wait until process is stopped
+TimeoutStopSec=0
+
+# SIGTERM signal is used to stop the Java process
+KillSignal=SIGTERM
+
+# Java process is never killed
+SendSIGKILL=no
+
+# When a JVM receives a SIGTERM signal it exits with code 143
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target

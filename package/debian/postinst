@@ -1,0 +1,108 @@
+# #######################################
+# ## SBT Native Packager Bash Library  ##
+# #######################################
+
+# Adding system user
+# $1 = user
+# $2 = uid
+# $3 = group
+# $4 = description
+# $5 = shell (defaults to /bin/false)
+# $6 = home directory (defaults to /var/lib/$user)
+addUser() {
+    user="$1"
+    if [ -z "$user" ]; then
+        echo "usage: addUser user [group] [description] [shell]"
+        exit 1
+    fi
+    uid="$2"
+    if [ -z "$uid" ]; then
+        uid_flags=""
+    else
+        uid_flags="--uid $uid"
+    fi
+    group=${3:-$user}
+    descr=${4:-No description}
+    shell=${5:-/bin/false}
+    homedir=${6:-/var/lib/$user}
+    if ! getent passwd | grep -q "^$user:";
+    then
+        echo "Creating system user: $user in $group with $descr and shell $shell"
+        useradd $uid_flags --gid $group -r --shell $shell -c "$descr" -d "$homedir" -m $user
+    fi
+}
+
+# Adding system group
+# $1 = group
+# $2 = gid
+addGroup() {
+    group="$1"
+    gid="$2"
+    if [ -z "$gid" ]; then
+        gid_flags=""
+    else
+        gid_flags="--gid $gid"
+    fi
+    if ! getent group | grep -q "^$group:" ;
+    then
+        echo "Creating system group: $group"
+        groupadd $gid_flags -r $group
+    fi
+}
+
+# Will return true even if deletion fails
+# $1 = user
+deleteUser() {
+    if hash deluser 2>/dev/null; then
+        deluser --quiet --system $1 > /dev/null || true
+    elif hash userdel 2>/dev/null; then
+        userdel $1
+    else
+        echo "WARNING: Could not delete user $1 . No suitable program (deluser, userdel) found"
+    fi
+}
+
+# Will return true even if deletion fails
+# $1 = group
+deleteGroup() {
+    if hash delgroup 2>/dev/null; then
+        delgroup --quiet --system $1 > /dev/null || true
+    elif hash groupdel 2>/dev/null; then
+        groupdel $1
+    else
+        echo "WARNING: Could not delete user $1 . No suitable program (delgroup, groupdel) found"
+    fi
+}
+
+# #######################################
+
+case "$1" in
+  configure|'')
+    addGroup ${{daemon_group}} ""
+    addUser ${{daemon_user}} "" ${{daemon_group}} "cerebro daemon-user" "/bin/false"
+    # Generate secret key
+    if ! test -e /etc/cerebro/secret.conf; then
+      key=$(dd if=/dev/urandom bs=1024 count=1 | tr -dc 'a-zA-Z0-9' | fold -w 64 | head -n 1)
+      echo "play.http.secret.key=\"$key\"" > /etc/cerebro/secret.conf
+    fi
+
+    # Chown definitions created by SBT Native Packager
+    mkdir -p /var/log/cerebro /etc/cerebro /var/lib/cerebro
+    touch /var/log/cerebro/application.log
+    chown ${{daemon_user}}:${{daemon_group}} /var/log/cerebro /var/lib/cerebro
+    chown root:${{daemon_group}} /etc/cerebro/application.conf /etc/cerebro/logback.xml
+    chmod 0640 /etc/cerebro/application.conf /etc/cerebro/logback.xml
+    chmod +x /usr/share/cerebro/bin/cerebro
+    test -x /bin/systemctl && /bin/systemctl daemon-reload || /bin/true
+    test -n "$2" && service cerebro start
+    exit 0
+  ;;
+  abort-upgrade|abort-remove|abort-deconfigure)
+  ;;
+  *)
+    echo "postinst called with unknown argument \`$1'" >&2
+    exit 1
+  ;;
+esac
+
+

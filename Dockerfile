@@ -1,20 +1,39 @@
-FROM openjdk:11-jre-slim
+# Build web assets (frontend)
+FROM node as builder-grunt
 
-ENV CEREBRO_VERSION 0.8.4
+RUN mkdir /app
+COPY . /app
+WORKDIR /app
 
-ADD target/universal/cerebro-${CEREBRO_VERSION}.tgz /opt
+RUN npm install -g grunt
+RUN npm install
+RUN grunt build
 
-RUN mv /opt/cerebro-$CEREBRO_VERSION /opt/cerebro \
- && apt-get update \
- && apt-get install -y wget \
- && rm -rf /var/lib/apt/lists/* \
- && mkdir -p /opt/cerebro/logs \
- && sed -i '/<appender-ref ref="FILE"\/>/d' /opt/cerebro/conf/logback.xml \
- && addgroup -gid 1000 cerebro \
- && adduser -gid 1000 -uid 1000 cerebro \
- && chown -R cerebro:cerebro /opt/cerebro
+# Build scala (backend)
+FROM sbtscala/scala-sbt:eclipse-temurin-jammy-11.0.17_8_1.8.2_2.13.10 as builder-scala
+
+ARG CEREBRO_VERSION
+
+RUN mkdir /app /opt/cerebro
+WORKDIR /app
+COPY --from=builder-grunt /app /app
+RUN sbt packageZipTarball
+RUN tar --strip-components=1 -C /opt/cerebro -xf /app/target/universal/cerebro-${CEREBRO_VERSION}.tgz
+RUN sed -i '/<appender-ref ref="FILE"\/>/d' /opt/cerebro/conf/logback.xml
+
+# Package docker image
+FROM eclipse-temurin:8-jre-jammy
+
+COPY --from=builder-scala /opt/cerebro /opt/cerebro
+
+RUN mkdir -p /opt/cerebro/logs \
+    && addgroup -gid 1000 cerebro \
+    && adduser -q --system --no-create-home --disabled-login -gid 1000 -uid 1000 cerebro \
+    && chown -R root:root /opt/cerebro \
+    && chown -R cerebro:cerebro /opt/cerebro/logs \
+    && chown cerebro:cerebro /opt/cerebro
 
 WORKDIR /opt/cerebro
-EXPOSE 9000
 USER cerebro
+
 ENTRYPOINT [ "/opt/cerebro/bin/cerebro" ]
