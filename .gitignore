@@ -4,6 +4,8 @@
 # except for .gitignore
 !.gitignore
 !.eslintrc.json
+!.dockerignore
+!.github/
 
 # Ignore Play! working directory #
 db
@@ -23,3 +25,6 @@ server.pid
 activator-*.sbt
 node_modules
 cerebro.db
+
+# Ignore IDE
+*.code-workspace

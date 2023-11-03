@@ -85,6 +85,19 @@ describe('ConnectController', function() {
       expect(this.scope.connecting).toEqual(false);
       expect(this.scope.unauthorized).toEqual(true);
     });
+    it('connect to a host with insufficient permissions', function() {
+      this.ConnectDataService.testConnection = function(host, success, error) {
+        success({data: {status: 403} });
+      };
+      spyOn(this.ConnectDataService, "connect").and.returnValue(true);
+      spyOn(this.ConnectDataService, "testConnection").and.callThrough();
+      this.scope.connect('http://localhost:9200');
+      expect(this.ConnectDataService.connect).not.toHaveBeenCalledWith(
+        'http://localhost:9200'
+      );
+      expect(this.scope.connecting).toEqual(false);
+      expect(this.scope.unauthorized).toEqual(true);
+    });
     it('handles unexpected response from host', function() {
       this.ConnectDataService.testConnection = function(host, success, error) {
         success({data: {status: 301}});

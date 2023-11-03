@@ -55,6 +55,10 @@ angular.module('cerebro', ['ngRoute', 'ngAnimate', 'ui.bootstrap'])
               templateUrl: 'cat/index.html',
               controller: 'CatController',
             })
+            .when('/indices', {
+              templateUrl: 'indices_view/index.html',
+              controller: 'IndicesController',
+            })
             .otherwise({
               redirectTo: '/connect',
             }
@@ -604,6 +608,7 @@ angular.module('cerebro').controller('ConnectController', [
             $location.path('/overview');
             break;
           case 401:
+          case 403:
             $scope.unauthorized = true;
             break;
           default:
@@ -625,6 +630,9 @@ angular.module('cerebro').controller('ConnectController', [
         switch (response.data.status) {
           case 401:
             feedback('Invalid username or password');
+            break;
+          case 403:
+            feedback('User does not have permission');
             break;
           case 200:
             ConnectDataService.connectWithCredentials(host, username, pwd);
@@ -964,6 +972,275 @@ var ValidIndexSettings = (function() {
 })();
 
 
+angular.module('cerebro').controller('IndicesController', ['$scope',
+  'IndicesDataService', 'AlertService', 'RefreshService', 'OverviewDataService',
+  function($scope, IndicesDataService, AlertService, RefreshService, OverviewDataService) {
+    $scope.paginator = new Paginator(1, 20, [],
+        new IndicesFilter(''));
+    $scope.$watch('paginator', function(filter, previous) {
+      $scope.page = $scope.paginator.getPage();
+    }, true);
+
+    $scope._indices = undefined; // keeps unfiltered list of nodes
+    $scope.indices = undefined;
+
+    $scope.sortBy = 'totalSize';
+    $scope.reverse = true;
+    $scope.data = undefined;
+    $scope.merge = true;
+    $scope.special = false;
+
+    $scope.pattern = '[^a-z]+$';
+
+    $scope.$watch(
+        function() {
+          return RefreshService.lastUpdate();
+        },
+        function() {
+          $scope.refresh();
+        },
+        true
+    );
+
+    $scope.$watch('paginator', function() {
+      $scope.page = $scope.paginator.getPage();
+    },
+    true);
+    $scope.$watch('merge', function() {
+      $scope.paginator.setCollection($scope.refreshMergeIndices());
+      $scope.page = $scope.paginator.getPage();
+    },
+    true);
+    $scope.$watch('special', function() {
+      $scope.paginator.setCollection($scope.refreshMergeIndices());
+      $scope.page = $scope.paginator.getPage();
+    },
+    true);
+
+    $scope.refreshMergeIndices = function() {
+      var arr;
+      if ($scope.merge) {
+        arr = $scope.mergetIndexName($scope._indices, $scope.pattern);
+      } else {
+        arr = $scope.reBuildOriginData($scope._indices);
+      }
+      arr.sort(function(v1, v2) {
+        var number;
+        if (typeof v1[$scope.sortBy] !== 'string' || typeof v2[$scope.sortBy] !== 'string') {
+          number = (v1[$scope.sortBy] < v2[$scope.sortBy]) ? -1 : 1;
+        } else {
+          number = v1.index.localeCompare(v2.index);
+        }
+        if ($scope.reverse) {
+          return 0 - number;
+        } else {
+          return number;
+        }
+      });
+      if (!$scope.special) {
+        var result = arr.filter(function(value) {
+          return !value.index.startsWith('.');
+        });
+        return result;
+      }
+      return arr;
+    };
+    $scope.setSortBy = function(field) {
+      if ($scope.sortBy === field) {
+        $scope.reverse = !$scope.reverse;
+      }
+      $scope.sortBy = field;
+      $scope.paginator = new Paginator(1, 20, $scope.refreshMergeIndices(),
+          new IndicesFilter($scope.paginator.filter.index));
+      $scope.page = $scope.paginator.getPage();
+    };
+
+    $scope.setindices = function(indices) {
+      $scope._indices = indices;
+    };
+
+    $scope.refresh = function() {
+      OverviewDataService.getOverview(
+          function(data) {
+            $scope.data = data;
+          },
+          function(error) {
+            AlertService.error('Error while loading data', error);
+            $scope.data = undefined;
+          }
+      );
+      IndicesDataService.load(
+          function(data) {
+            $scope.setindices(data.indices);
+            $scope.paginator.setCollection($scope.refreshMergeIndices());
+            $scope.page = $scope.paginator.getPage();
+          },
+          function(error) {
+            $scope.setindices(undefined);
+            AlertService.error('Error while loading nodes data', error);
+          }
+      );
+    };
+    $scope.mergetIndexName = function(tempData, pattern) {
+      var resultDataArray = [];
+      var map = new Map();
+      var regx = new RegExp(pattern);
+      for (var key in tempData) {
+        if (tempData.hasOwnProperty(key)) {
+          var result = regx.exec(key);
+          var prefix = '';
+          if (result != null && result.index > 0) {
+            prefix = key.substring(0, result.index);
+          } else {
+            prefix = key;
+          }
+          if (map.has(prefix)) {
+            var temp = map.get(prefix);
+            temp.push(tempData[key]);
+            map.set(prefix, temp);
+          } else {
+            var temp1 = [];
+            temp1.push(tempData[key]);
+            map.set(prefix, temp1);
+          }
+        }
+      }
+      map.forEach(function(value, key) {
+        var size = 0;
+        var totalDocs = 0;
+        var primariesSize = 0;
+        var primariesDocs = 0;
+        var search = 0;
+        var get = 0;
+        var query = 0;
+        for (var i = 0, len = value.length; i < len; i++) {
+          var data = value[i];
+          var indexSize = data.total.store.size_in_bytes;
+          size = size + indexSize;
+          totalDocs = totalDocs + data.total.docs.count;
+          primariesSize = primariesSize + data.primaries.store.size_in_bytes;
+          primariesDocs = primariesDocs + data.primaries.docs.count;
+          search = search + data.total.search.query_total;
+          get = get + data.total.get.total;
+          query = query + data.total.query_cache.total_count;
+        }
+        var obj = {
+          index: key + '*(' + value.length + ')',
+          totalSize: size,
+          totalDocs: totalDocs,
+          primariesSize: primariesSize,
+          primariesDocs: primariesDocs,
+          searchCount: search,
+          getCount: get,
+          queryCount: query,
+        };
+        resultDataArray.push(obj);
+      });
+
+      return resultDataArray;
+    };
+    $scope.reBuildOriginData = function(orignData) {
+      var arr1 = [];
+      for (var key in orignData) {
+        if (orignData.hasOwnProperty(key)) {
+          var element = orignData[key];
+          var obj = {
+            index: key,
+            totalSize: element.total.store.size_in_bytes,
+            totalDocs: element.total.docs.count,
+            primariesSize: element.primaries.store.size_in_bytes,
+            primariesDocs: element.primaries.docs.count,
+            searchCount: element.total.search.query_total,
+            getCount: element.total.get.total,
+            queryCount: element.total.query_cache.total_count,
+          };
+          arr1.push(obj);
+        }
+      }
+      return arr1;
+    };
+    $scope.formatBytes = function(size) {
+      if (size == undefined) {
+        return '';
+      }
+      var kb = 1024;
+      var mb = 1024 * 1024;
+      var gb = 1024 * 1024 * 1024;
+      var tb = 1024 * 1024 * 1024 * 1024;
+      if (size > tb) {
+        size = (size / tb).toFixed(2) + ' TB';
+      } else if (size > gb) {
+        size = (size / gb).toFixed(2) + ' GB';
+      } else if (size > mb) {
+        size = (size / mb).toFixed(2) + ' MB';
+      } else {
+        size = (size / kb).toFixed(2) + ' KB';
+      }
+      return size;
+    };
+    $scope.renderNum = function(numValue) {
+      if (numValue == undefined) {
+        return '';
+      }
+      var num = (numValue || 0).toString();
+      var result = '';
+      while (num.length > 3) {
+        result = ',' + num.slice(-3) + result;
+        num = num.slice(0, num.length - 3);
+      }
+      if (num) {
+        result = num + result;
+      }
+      return result;
+    };
+  }]
+);
+
+angular.module('cerebro').factory('IndicesDataService', ['DataService',
+  function(DataService) {
+    this.load = function(success, error) {
+      DataService.send('indices', {}, success, error);
+    };
+
+    return this;
+  },
+]);
+
+function IndicesFilter(index) {
+  this.index = index;
+  this.clone = function() {
+    // eslint-disable-next-line no-unused-vars
+    return new IndicesFilter(this.index);
+  };
+
+  this.getSorting = function() {
+    return function(a, b) {
+      return 0;
+    };
+  };
+
+  this.equals = function(other) {
+    return (other !== null &&
+    this.index == other);
+  };
+
+  this.isBlank = function() {
+    return !this.index;
+  };
+
+  this.matches = function(alias) {
+    if (this.isBlank()) {
+      return true;
+    } else {
+      var matches = true;
+      if (this.index) {
+        matches = alias.index.indexOf(this.index) != -1;
+      }
+      return matches;
+    }
+  };
+}
+
 angular.module('cerebro').controller('ModalController', ['$scope',
   'ModalService', function($scope, ModalService) {
     $scope.service = ModalService;
@@ -1113,7 +1390,7 @@ angular.module('cerebro').controller('OverviewController', ['$scope', '$http',
     $scope.special_indices = 0;
     $scope.shardAllocation = true;
 
-    $scope.indices_filter = new IndexFilter('', false, false, true, true, 0);
+    $scope.indices_filter = new IndexFilter('', [], false, false, true, true, 0);
     $scope.nodes_filter = new NodeFilter('', true, false, false, false, 0);
 
     $scope.getPageSize = function() {
@@ -1192,6 +1469,14 @@ angular.module('cerebro').controller('OverviewController', ['$scope', '$http',
     $scope.$watch('nodes_filter', function() {
       if ($scope.data) {
         $scope.setNodes($scope.data.nodes);
+        if ($scope.nodes_filter.name) {
+          $scope.indices_filter.nodes = $scope.nodes.map(function (node) {
+            return node.id;
+          });
+        } else {
+          $scope.indices_filter.nodes = [];
+        }
+        $scope.setIndices($scope.data.indices);
       }
     },
     true);
@@ -1715,6 +2000,12 @@ angular.module('cerebro').controller('RestController', ['$scope', '$http',
       if (path.substring(0, 1) !== '/') {
         path = '/' + path;
       }
+	  var host = $scope.host;
+
+	  // cut off trailing slash in hostname to not produce double-slashes
+	  if (host.endsWith('/')) {
+		  host = host.substring(0, host.length - 1);
+	  }
 
       var matchesAPI = function(path, api) {
         return path.indexOf(api) === (path.length - api.length);
@@ -1739,10 +2030,19 @@ angular.module('cerebro').controller('RestController', ['$scope', '$http',
 
       var curl = 'curl';
       curl += ' -H \'Content-type: ' + contentType + '\'';
-      curl += ' -X' + method + ' \'' + $scope.host + path + '\'';
+      curl += ' -X' + method + ' \'' + host + path + '\'';
+
+	  // add body for POST and PUT
       if (['POST', 'PUT'].indexOf(method) >= 0) {
         curl += ' -d \'' + body + '\'';
       }
+
+	  // GET can have body as well, e.g. the Elasticsearch Query
+      if (['GET'].indexOf(method) >= 0 &&
+		  typeof body !== 'undefined' && body !== '' && body.trim() !== '{}') {
+        curl += ' -d \'' + body + '\'';
+      }
+
       ClipboardService.copy(
           curl,
           function() {
@@ -2265,8 +2565,9 @@ function GroupedSettings(settings) {
   this.groups = Object.values(groups);
 }
 
-function IndexFilter(name, closed, special, healthy, asc, timestamp) {
+function IndexFilter(name, nodes, closed, special, healthy, asc, timestamp) {
   this.name = name;
+  this.nodes = nodes;
   this.closed = closed;
   this.special = special;
   this.healthy = healthy;
@@ -2294,6 +2595,7 @@ function IndexFilter(name, closed, special, healthy, asc, timestamp) {
     // eslint-disable-next-line no-unused-vars
     return new IndexFilter(
         this.name,
+        this.nodes,
         this.closed,
         this.special,
         this.healthy,
@@ -2306,6 +2608,7 @@ function IndexFilter(name, closed, special, healthy, asc, timestamp) {
     return (
       other !== null &&
       this.name === other.name &&
+      this.nodes === other.nodes &&
       this.closed === other.closed &&
       this.special === other.special &&
       this.healthy === other.healthy &&
@@ -2360,6 +2663,12 @@ function IndexFilter(name, closed, special, healthy, asc, timestamp) {
         }
       }
     }
+    if (matches && this.nodes.length > 0) {
+      var shardNodes = Object.keys(index.shards);
+      matches = this.nodes.filter(function(node) {
+        return shardNodes.indexOf(node) != -1;
+      }).length > 0;
+    }
     return matches;
   };
 }
@@ -2402,11 +2711,53 @@ function NodeFilter(name, data, master, ingest, coordinating, timestamp) {
   };
 
   this.matches = function(node) {
-    if (this.isBlank()) {
-      return true;
-    } else {
-      return this.matchesName(node.name) && this.matchesType(node);
+    var matches = true;
+    if (!this.matchesType(node)) {
+      matches = false;
     }
+    if (matches && this.name) {
+      try {
+        var regExp = new RegExp(this.name.trim(), 'i');
+        matches = regExp.test(node.name);
+        if (!matches) {
+          var attrs = Object.values(node.attributes);
+          for (var idx = 0; idx < attrs.length; idx++) {
+            if ((matches = regExp.test(attrs[idx]))) {
+              break;
+            }
+          }
+        }
+        if (!matches) {
+          for (idx = 0; idx < node.roles.length; idx++) {
+            if ((matches = regExp.test(node.roles[idx]))) {
+              break;
+            }
+          }
+        }
+      } catch (err) { // if not valid regexp, still try normal matching
+        matches = node.name.indexOf(this.name.toLowerCase()) != -1;
+        if (!matches) {
+          var _attrs = Object.values(node.attributes);
+          for (var _idx = 0; _idx < _attrs.length; _idx++) {
+            var attr = _attrs[_idx].toLowerCase();
+            matches = true;
+            if ((matches = (attr.indexOf(this.name.toLowerCase()) != -1))) {
+              break;
+            }
+          }
+        }
+        if (!matches) {
+          for (_idx = 0; _idx < node.roles.length; _idx++) {
+            var role = node.roles[_idx].toLowerCase();
+            matches = true;
+            if ((matches = (role.indexOf(this.name.toLowerCase()) != -1))) {
+              break;
+            }
+          }
+        }
+      }
+    }
+    return matches;
   };
 
   this.matchesType = function(node) {
@@ -3089,6 +3440,7 @@ angular.module('cerebro').factory('DataService', ['$rootScope', '$timeout',
             $window.location.href = './login';
             break;
           case 401: // unauthorized in ES instance
+          case 403: // user does not have permissions
             $location.path('/connect').search({host: host, unauthorized: true});
             break;
           default:
