@@ -34,6 +34,7 @@ angular.module('cerebro').controller('ConnectController', [
             $location.path('/overview');
             break;
           case 401:
+          case 403:
             $scope.unauthorized = true;
             break;
           default:
