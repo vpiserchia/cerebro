@@ -1,7 +1,7 @@
 Cerebro
 ------------
-[![Docker Pulls](https://img.shields.io/docker/pulls/lmenezes/cerebro.svg)](https://hub.docker.com/r/lmenezes/cerebro)
-![build](https://github.com/lmenezes/cerebro/workflows/build/badge.svg?branch=master)
+
+This fork has bundled two repos cerebro + cebrebro-docker into one repository and also has updated a couple of libraries to resolve open CVEs. The docker file has hard coded SAP repositories, please replace them with the docker one, as SAP is just mirroring the docker repos for performance and rate limiting reasons.
 
 cerebro is an open source(MIT License) elasticsearch web admin tool built using Scala, Play Framework, AngularJS and Bootstrap.
 
