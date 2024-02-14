@@ -1,3 +1,4 @@
+#FROM --platform=linux/amd64 keppel.eu-de-1.cloud.sap/ccloud-dockerhub-mirror/library/openjdk:11-jdk-slim as builder
 FROM --platform=linux/amd64 keppel.eu-de-1.cloud.sap/ccloud-dockerhub-mirror/library/openjdk:11-jdk-slim as builder
 LABEL source_repository="https://github.com/Kuckkuck/cerebro"
 
@@ -13,7 +14,8 @@ RUN mkdir -p /opt/cerebro/logs
 RUN tar xzvf /opt/cerebro-${CEREBRO_VERSION}.tgz --strip-components 1 -C /opt/cerebro \
  && sed -i '/<appender-ref ref="FILE"\/>/d' /opt/cerebro/conf/logback.xml
 
-FROM --platform=linux/amd64 keppel.eu-de-1.cloud.sap/ccloud-dockerhub-mirror/library/openjdk:11-jdk-slim
+#FROM --platform=linux/amd64 keppel.eu-de-1.cloud.sap/ccloud-dockerhub-mirror/library/openjdk:11-jdk-slim
+FROM --platform=linux/amd64 keppel.eu-de-1.cloud.sap/ccloud-dockerhub-mirror/library/sapmachine:11-jdk-ubuntu
 LABEL source_repository="https://github.com/Kuckkuck/cerebro"
 
 COPY --from=builder /opt/cerebro /opt/cerebro
