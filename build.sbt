@@ -7,9 +7,10 @@ packageSummary := "Elasticsearch web admin tool"
 packageDescription := """cerebro is an open source(MIT License) elasticsearch web admin tool built
   using Scala, Play Framework, AngularJS and Bootstrap."""
 
-version := "0.9.4-dl"
 
-scalaVersion := "2.13.11"
+version := "0.9.5-dl"
+
+scalaVersion := "2.13.12"
 
 rpmVendor := "lmenezes"
 
@@ -17,15 +18,38 @@ rpmLicense := Some("MIT")
 
 rpmUrl := Some("http://github.com/lmenezes/cerebro")
 
-libraryDependencies ++= Seq(
-  "com.typesafe.play" %% "play"                    % "2.8.16",
-  "com.typesafe.play" %% "play-json"               % "2.9.4",
-  "com.typesafe.play" %% "play-slick"              % "5.1.0",
-  "com.typesafe.play" %% "play-slick-evolutions"   % "5.1.0",
-  "org.xerial"        %  "sqlite-jdbc"             % "3.43.2.2",
-  "org.specs2"        %% "specs2-junit"  % "4.20.2" % "test",
-  "org.specs2"        %% "specs2-core"   % "4.20.2" % "test",
-  "org.specs2"        %% "specs2-mock"   % "4.20.2" % "test"
+val jacksonVersion         = "2.14.2"
+val jacksonDatabindVersion = "2.14.2"
+
+val jacksonOverrides = Seq(
+  "com.fasterxml.jackson.core"     % "jackson-core",
+  "com.fasterxml.jackson.core"     % "jackson-annotations",
+  "com.fasterxml.jackson.datatype" % "jackson-datatype-jdk8",
+  "com.fasterxml.jackson.datatype" % "jackson-datatype-jsr310"
+).map(_ % jacksonVersion)
+
+val jacksonDatabindOverrides = Seq(
+  "com.fasterxml.jackson.core" % "jackson-databind" % jacksonDatabindVersion
+)
+
+val akkaSerializationJacksonOverrides = Seq(
+  "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor",
+  "com.fasterxml.jackson.module"     % "jackson-module-parameter-names",
+  "com.fasterxml.jackson.module"     %% "jackson-module-scala",
+).map(_ % jacksonVersion)
+
+libraryDependencies ++= jacksonDatabindOverrides ++ jacksonOverrides ++ akkaSerializationJacksonOverrides ++ Seq(
+  "com.typesafe.play" %% "play"                    % "2.8.21",
+  "com.typesafe.play" %% "play-json"               % "2.10.3",
+  "com.typesafe.play" %% "play-slick"              % "5.0.0",
+  "com.typesafe.play" %% "play-slick-evolutions"   % "5.0.0",
+  "org.xerial"        %  "sqlite-jdbc"             % "3.41.2.2",
+  "org.specs2"        %% "specs2-junit"  % "4.10.0" % "test",
+  "org.specs2"        %% "specs2-core"   % "4.10.0" % "test",
+  "org.specs2"        %% "specs2-mock"   % "4.10.0" % "test",
+  "ch.qos.logback"        % "logback-classic"   % "1.2.13",
+  "com.google.guava"        % "guava"   % "32.1.2-jre",
+  "com.typesafe.akka"        % "akka-http-core_2.13"   % "10.1.15"
 )
 
 libraryDependencies += filters
